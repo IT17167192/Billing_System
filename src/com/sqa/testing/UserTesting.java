@@ -38,6 +38,14 @@ class UserTesting {
 	}
 	
 	@Test
+	@DisplayName("User not an admin!")
+	void notAnAdminUser() {
+		userName = "YugmaF";
+		password = "Yugma123";
+		Assertions.assertFalse(userModal.getAccountByUsername(userName).getRole().equals("admin"));
+	}
+	
+	@Test
 	@DisplayName("User Role Should be equal to admin!")
 	void shouldBeAdminUser() {
 		userName = "AmashaD";

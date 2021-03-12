@@ -1,6 +1,7 @@
 package com.sqa.controllers.bills;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Scanner;
 
 import com.sqa.controllers.items.ItemController;
@@ -11,9 +12,10 @@ import com.sqa.models.bills.BillingModel;
 
 public class BillingController {
 	BillingModel billingModel;
-	
+	ArrayList<ItemImpl> items;
 	public BillingController() {
 		billingModel = new BillingModel();
+		items = new ArrayList<ItemImpl>();
 	}
 	
 	public void purchaseItem(UserAccountImpl user) {
@@ -26,13 +28,11 @@ public class BillingController {
 		String cmd;
 		
 		try {
-			ArrayList<ItemImpl> items = new ArrayList<ItemImpl>();
 			
 			ItemImpl item = itemController.searchItemByItemCode();	
 			int quantity = itemController.reduceQuantity(item.getItemCode());
-			
 			item.setQuantity(quantity);
-			items.add(item);
+			addItemToList(item);
 
 			double priceEach = item.getPrice() * quantity;
 			totalPrice += priceEach;
@@ -42,7 +42,7 @@ public class BillingController {
 			
 			while(!cmd.equalsIgnoreCase("N")) {
 				item = itemController.searchItemByItemCode();
-				ItemImpl itemToCheck = checkItemExist(items, item);
+				ItemImpl itemToCheck = checkItemExist(getItems(), item);
 				
 				String itemUpdateCmd = "";
 				
@@ -52,6 +52,16 @@ public class BillingController {
 				}
 				
 				if(itemUpdateCmd.equalsIgnoreCase("Y")) {
+					//set item as updated item
+					item = itemToCheck;
+					
+					//reduce price from total price
+					totalPrice -= (item.getPrice() * item.getQuantity());
+					
+					//remove from list
+					removeItemByItem(item);
+					
+					//update quantity
 					if(itemController.rollbackItemQuantity(itemToCheck.getItemCode(), itemToCheck.getQuantity()));
 						System.out.println("Provide Update Quantity!");
 				}else if(itemUpdateCmd.equalsIgnoreCase("N")){
@@ -60,18 +70,18 @@ public class BillingController {
 				}
 				
 				quantity = itemController.reduceQuantity(item.getItemCode());
-				
+
 				priceEach = item.getPrice() * quantity;
 				totalPrice += priceEach;
 				
 				item.setQuantity(quantity);
-				items.add(item);
+				addItemToList(item);
 				System.out.print("Do you want to add more items? (Y/N) : ");
 				cmd = sc.nextLine().trim();
 			}
 			
 			BillImpl billImpl = new BillImpl();
-			billImpl.setItems(items);
+			billImpl.setItems(getItems());
 			billImpl.setTotalPrice(totalPrice);
 			billImpl.setUser(user);
 			System.out.println("Total Price : " + totalPrice);
@@ -88,6 +98,9 @@ public class BillingController {
 			System.out.println("Balance : " + (payAmount - totalPrice));
 			
 			boolean success = billingModel.addBill(billImpl);
+			//clear arrayList
+			clearItemsFromArrayList();
+			
 			System.out.println("Bill Successfully Added!");
 		} catch (NullPointerException e) {
 			System.out.println("Sorry! Item not found!");
@@ -98,10 +111,34 @@ public class BillingController {
 	
 	public ItemImpl checkItemExist(ArrayList<ItemImpl> items, ItemImpl item) {
 		
-		for(ItemImpl i : items) {
+		for(ItemImpl i : getItems()) {
 			if(i.getItemCode() == item.getItemCode())
 				return i;
 		}
 		return null;
+	}
+	
+	public void addItemToList(ItemImpl item) {
+		items.add(item);
+	}
+	
+	public ArrayList<ItemImpl> getItems() {
+		return items;
+	}
+	
+	public void clearItemsFromArrayList() {
+		items.clear();
+	}
+	
+	public void removeItemByItem(ItemImpl item) {
+		int pos = 0;
+		for(ItemImpl i : getItems()) {
+			if(i.getItemCode() == item.getItemCode()) {
+				break;
+			}
+			pos++;
+		}
+		
+		items.remove(pos);
 	}
 }
